@@ -1,2 +1,2 @@
 # TicTacToe
-my first pygame project!
+My first pygame project!
