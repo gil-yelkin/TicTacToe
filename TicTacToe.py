@@ -45,10 +45,12 @@ class GameBoard:
     def update_cell(self, cell_num, shape):
         self.cells.sprites()[cell_num].set_shape(shape)
 
+    def cell_at(self, index):
+        return self.cells.sprites()[index]
+
 
 class Grid:
     def __init__(self, board_rect):
-
         # creating line surfaces
         self.vertical_line_surf = pygame.surface.Surface((1, board_rect.height))
         self.vertical_line_surf.fill('White')
@@ -137,7 +139,8 @@ def get_cell_coordinates(cell_number) -> tuple:
     :return: the cell's center coordinates
     :rtype: tuple
     """
-    return ((cell_number % 3)*2 + 1)*SCREEN_WIDTH/6, (numpy.floor(cell_number/3)*2 + 1)*(SCREEN_HEIGHT-100)/6 + 100
+    return ((cell_number % 3) * 2 + 1) * SCREEN_WIDTH / 6, (numpy.floor(cell_number / 3) * 2 + 1) * (
+                SCREEN_HEIGHT - 100) / 6 + 100
 
 
 def easy_ai_place_shape(board, shape):
@@ -207,9 +210,9 @@ def print_shapes(screen):
     text_rect = text_surf.get_rect(midtop=(SCREEN_WIDTH / 2, 50))
 
     circle_surf = pygame.image.load('circle.png').convert_alpha()
-    circle_rect = circle_surf.get_rect(center=(SCREEN_WIDTH/3, SCREEN_HEIGHT*2/3))
+    circle_rect = circle_surf.get_rect(center=(SCREEN_WIDTH / 3, SCREEN_HEIGHT * 2 / 3))
     cross_surf = pygame.image.load('cross.png').convert_alpha()
-    cross_rect = cross_surf.get_rect(center=(SCREEN_WIDTH*2/3, SCREEN_HEIGHT*2/3))
+    cross_rect = cross_surf.get_rect(center=(SCREEN_WIDTH * 2 / 3, SCREEN_HEIGHT * 2 / 3))
 
     screen.blit(cross_surf, circle_rect)
     screen.blit(circle_surf, cross_rect)
@@ -246,7 +249,7 @@ def cls(screen):
     :rtype: NoneType
     """
     screen.fill('Black')
-    pygame.display.update() # #
+    pygame.display.update()  # #
 
 
 def place_shape(board, mouse_pos, shape):
@@ -292,6 +295,30 @@ def show_preview(board, mouse_pos, shape):
 def check_for_win(board):
     for shape in ('circle', 'cross'):
 
+        # checking for winning rows
+        for i in range(0, 9, 3):  # 8 = # of cells in the board, 3 = # of cells in each row
+            if board.cell_at(i).contents == shape and board.cell_at(i + 1).contents == shape \
+                    and board.cell_at(i + 2).contents == shape:
+                return shape
+
+        # checking for winning columns
+        for i in range(3):
+            if board.cell_at(i).contents == shape and board.cell_at(i + 3).contents == shape \
+                    and board.cell_at(i + 6).contents == shape:
+                return shape
+
+        # checking for winning diagonals
+        if board.cell_at(0).contents == shape and board.cell_at(4).contents == shape \
+                and board.cell_at(8).contents == shape:
+            return shape
+        if board.cell_at(6).contents == shape and board.cell_at(4).contents == shape \
+                and board.cell_at(2).contents == shape:
+            return shape
+
+    for cell in board.cells:
+        if cell.contents == 'empty':
+            return None
+    return 'tie'
 
 
 def main():
@@ -304,7 +331,7 @@ def main():
 
     # defining game state keepers
     game_active = False
-    game_choosing_shape = False  # the game is started by choosing the shape TODO change
+    game_choosing_shape = False
 
     # opening game screen
     start_game_animation(screen)
@@ -331,16 +358,26 @@ def main():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
                     if board.rect.collidepoint(mouse_pos):
-                        was_placed = place_shape(board, mouse_pos, chosen_shape)
-                        winner = check_for_win(board)
+                        if not winner:
+                            was_placed = place_shape(board, mouse_pos, chosen_shape)
+                            winner = check_for_win(board)
                         if winner:
                             game_active = False
                             if winner == chosen_shape:
-                                pass  # TODO
+                                print('You won!')  # TODO change
+                                pygame.quit()
+                                exit()
+                            elif winner == 'tie':
+                                print('tie')
+                                pygame.quit()
+                                exit()
                             else:
-                                pass  # TODO
+                                print('You lose!')  # TODO change
+                                pygame.quit()
+                                exit()
                         elif was_placed:
                             easy_ai_place_shape(board, enemy_shape)
+                            winner = check_for_win(board)
                     else:
                         pass  # TODO 'change_settings(params)'
             elif game_choosing_shape:
@@ -350,6 +387,7 @@ def main():
                         cursor = Cursor(chosen_shape)
                         game_choosing_shape = False
                         game_active = True
+                        winner = None
 
                         if chosen_shape == 'circle':
                             enemy_shape = 'cross'
